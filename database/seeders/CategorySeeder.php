@@ -15,5 +15,6 @@ class CategorySeeder extends Seeder
         \App\Models\Category::create(['nama_kategori' => 'Jalan Berlubang']);
         \App\Models\Category::create(['nama_kategori' => 'Aspal Mengelupas']);
         \App\Models\Category::create(['nama_kategori' => 'Lampu Jalan Mati']);
+        \App\Models\Category::create(['nama_kategori' => 'Trotoar Rusak']);
     }
 }

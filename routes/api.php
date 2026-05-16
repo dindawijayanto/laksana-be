@@ -1,22 +1,17 @@
 <?php
+
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ReportController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-Route::get('/reports', [ReportController::class, 'index']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/reports', [ReportController::class, 'store']);
-    Route::get('/user-profile', function (Request $request) {
-        return $request->user();
-    });
+    
+    Route::get('/reports', [ReportController::class, 'index']);       // Ambil semua laporan
+    Route::post('/reports', [ReportController::class, 'store']);      // Kirim laporan baru
+    
+    Route::patch('/reports/{id}/status', [ReportController::class, 'updateStatus']); 
+    
 });
