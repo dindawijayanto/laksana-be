@@ -12,12 +12,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. BUAT USER CONTOH (Biar laporan ada pemiliknya)
+        // 1. BUAT USER ADMIN DEFAULT (email:
         $user = User::updateOrCreate(
             ['email' => 'admin@laksana.com'],
             [
                 'name' => 'Admin Laksana',
                 'password' => Hash::make('password123'),
+                'role' => 'admin',  // ← tambah ini
             ]
         );
 

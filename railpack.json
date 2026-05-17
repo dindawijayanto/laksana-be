@@ -1,5 +1,6 @@
 {
   "php": {
-    "version": "8.2"
+    "version": "8.2",
+    "extensions": ["pdo_mysql", "mbstring", "openssl", "tokenizer", "xml", "ctype", "json", "bcmath"]
   }
 }
