@@ -1,142 +1,144 @@
-    <?php
+<?php
 
-    namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api;
 
-    use App\Http\Controllers\Controller;
-    use Illuminate\Http\Request;
-    use App\Models\User;
-    use Illuminate\Support\Facades\Hash;
-    use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
-    class AuthController extends Controller
+class AuthController extends Controller
+{
+    // ============================================================
+    //  POST /api/register
+    // ============================================================
+    public function register(Request $request)
     {
-        /**
-         * FITUR 1: REGISTRASI USER/WARGA BARU
-         */
-        public function register(Request $request)
-        {
-            $validator = Validator::make($request->all(), [
-                'name'     => 'required|string|max:255',
-                'email'    => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
+        $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => $validator->errors()->first()
-                ], 422);
-            }
+        $user = User::create([
+            'name'     => $request->name,
+            'email'    => $request->email,
+            'password' => Hash::make($request->password),
+            'role'     => 'user', // Default role selalu 'user'
+        ]);
 
-            $user = User::create([
-                'name'     => $request->name,
-                'email'    => $request->email,
-                'password' => Hash::make($request->password),
-                'role'     => 'user',
-            ]);
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'access_token' => $token,
-                'token_type'   => 'Bearer',
-                'user'         => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
-                    'role'  => $user->role,
-                ]
-            ]);
-        }
-
-        /**
-         * FITUR 2: LOGIN SISTEM
-         */
-        public function login(Request $request)
-        {
-            $validator = Validator::make($request->all(), [
-                'email'    => 'required|string|email',
-                'password' => 'required|string',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => $validator->errors()->first()
-                ], 422);
-            }
-
-            $user = User::where('email', $request->email)->first();
-
-            if (!$user || !Hash::check($request->password, $user->password)) {
-                return response()->json([
-                    'message' => 'Email atau password yang Anda masukkan salah.'
-                ], 401);
-            }
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            return response()->json([
-                'message'      => 'Selamat datang kembali, ' . $user->name,
-                'access_token' => $token,
-                'token_type'   => 'Bearer',
-                'user'         => $user
-            ], 200);
-        }
-
-        /**
-         * FITUR 3: LOGOUT / HAPUS SESI TOKEN
-         */
-        public function logout(Request $request)
-        {
-            $request->user()->currentAccessToken()->delete();
-
-            return response()->json([
-                'message' => 'Berhasil keluar dari sistem Laksana.'
-            ], 200);
-        }
-
-        /**
-         * FITUR 4: UPDATE PROFILE USER
-         * Endpoint: POST /api/profile
-         */
-        public function updateProfile(Request $request)
-        {
-            $user = $request->user();
-
-            $validator = Validator::make($request->all(), [
-                'name'     => 'sometimes|required|string|max:255',
-                'email'    => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
-                'password' => 'sometimes|nullable|string|min:8|confirmed',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => $validator->errors()->first(),
-                    'errors'  => $validator->errors()
-                ], 422);
-            }
-
-            if ($request->filled('name')) {
-                $user->name = $request->name;
-            }
-
-            if ($request->filled('email')) {
-                $user->email = $request->email;
-            }
-
-            if ($request->filled('password')) {
-                $user->password = Hash::make($request->password);
-            }
-
-            $user->save();
-
-            return response()->json([
-                'message' => 'Profil berhasil diperbarui!',
-                'user'    => [
-                    'id'    => $user->id,
-                    'name'  => $user->name,
-                    'email' => $user->email,
-                    'role'  => $user->role,
-                ]
-            ], 200);
-        }
+        return response()->json([
+            'message'      => 'Registrasi berhasil.',
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
+        ], 201);
     }
+
+    // ============================================================
+    //  POST /api/login
+    // ============================================================
+    public function login(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required',
+        ]);
+
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            throw ValidationException::withMessages([
+                'email' => ['Email atau password salah.'],
+            ]);
+        }
+
+        $user = Auth::user();
+
+        // Hapus semua token lama (single session)
+        $user->tokens()->delete();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message'      => 'Login berhasil.',
+            'access_token' => $token,
+            'token_type'   => 'Bearer',
+            'user'         => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,   // ← PENTING: frontend butuh ini untuk redirect
+            ],
+        ]);
+    }
+
+    // ============================================================
+    //  POST /api/logout
+    // ============================================================
+    public function logout(Request $request)
+    {
+        // Hapus token yang sedang dipakai
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil.',
+        ]);
+    }
+
+    // ============================================================
+    //  GET /api/me  —  ambil data user yang sedang login
+    // ============================================================
+    public function me(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'id'    => $user->id,
+            'name'  => $user->name,
+            'email' => $user->email,
+            'role'  => $user->role,
+        ]);
+    }
+
+    // ============================================================
+    //  POST /api/profile  —  update nama, email, password (opsional)
+    // ============================================================
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name'                  => 'required|string|max:255',
+            'email'                 => 'required|email|max:255|unique:users,email,' . $user->id,
+            'password'              => 'nullable|string|min:8|confirmed',
+            'password_confirmation' => 'nullable|string',
+        ]);
+
+        $user->name  = $request->name;
+        $user->email = $request->email;
+
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui.',
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
+        ]);
+    }
+}

@@ -9,15 +9,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Menambahkan kolom role setelah kolom password, dengan default value 'user'
-            $table->string('role')->default('user')->after('password');
+            // Tambah kolom role: 'user' atau 'admin'
+            $table->enum('role', ['user', 'admin'])->default('user')->after('email');
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Menghapus kolom jika migration di-rollback
             $table->dropColumn('role');
         });
     }
