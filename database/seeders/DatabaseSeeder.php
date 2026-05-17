@@ -12,16 +12,29 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. BUAT USER CONTOH (Biar laporan ada pemiliknya)
+        // 1. Buat User Biasa (Menyimpan hasil ke variabel $user)
         $user = User::updateOrCreate(
-            ['email' => 'admin@laksana.com'],
+            ['email' => 'keizaandrea@gmail.com'], // Diperbaiki agar sinkron
             [
-                'name' => 'Admin Laksana',
-                'password' => Hash::make('password123'),
+                'name' => 'Micheline Keiza',
+                'email' => 'keizaandrea@gmail.com', // 🌟 Tadi kurang koma di sini
+                'password' => Hash::make('user123'),
+                'role' => 'user',
             ]
         );
 
-        // 2. BUAT 7 JENIS INFRASTRUKTUR
+        // 2. Buat User Admin (ID: 3 seperti di HeidiSQL kamu)
+        $admin = User::updateOrCreate(
+            ['email' => 'admin@laksana.id'],
+            [
+                'name'     => 'Admin Laksana',
+                'email'    => 'admin@laksana.id',
+                'password' => Hash::make('admin123'),
+                'role'     => 'admin',
+            ]
+        );
+
+        // 3. Masukkan Kategori Infrastruktur
         $categories = [
             ['id' => 1, 'nama_kategori' => 'Jalan & Jembatan'],
             ['id' => 2, 'nama_kategori' => 'Drainase'],
@@ -36,11 +49,9 @@ class DatabaseSeeder extends Seeder
             Category::updateOrCreate(['id' => $category['id']], $category);
         }
 
-        // 3. BUAT DATA LAPORAN DUMMY (Biar Grafik & Peta Langsung Terisi)
-        // Kita siapkan pilihan status dan tingkat keparahan acak
+        // 4. Masukkan Dummy Reports
         $listStatus = ['pending', 'proses', 'selesai', 'ditolak'];
         
-        // Contoh 5 data laporan di sekitar Malang/Kampus
         $dummyReports = [
             ['lokasi' => 'Gerbang Veteran UB', 'lat' => -7.952, 'lng' => 112.614, 'cat' => 1],
             ['lokasi' => 'Jl. Sumbersari No. 10', 'lat' => -7.955, 'lng' => 112.612, 'cat' => 2],
@@ -51,14 +62,14 @@ class DatabaseSeeder extends Seeder
 
         foreach ($dummyReports as $data) {
             Report::create([
-                'user_id' => $user->id,
+                'user_id' => $user->id, // 🌟 Sekarang aman karena $user di atas sudah didefinisikan (ID: 1)
                 'category_id' => $data['cat'],
                 'lokasi' => $data['lokasi'],
                 'latitude' => $data['lat'],
                 'longitude' => $data['lng'],
                 'deskripsi' => 'Laporan uji coba otomatis dari system seeder.',
-                'tingkat_keparahan' => rand(1, 5), // Mengisi acak angka 1 sampai 5
-                'status' => $listStatus[array_rand($listStatus)], // Mengisi acak status pending/proses/selesai/ditolak
+                'tingkat_keparahan' => rand(1, 5), 
+                'status' => $listStatus[array_rand($listStatus)], 
             ]);
         }
     }

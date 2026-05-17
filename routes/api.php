@@ -1,31 +1,34 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ReportController;
 
-// Route Publik (Bebas Akses)
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+/*
+|--------------------------------------------------------------------------
+| API Routes — Laksana Backend
+|--------------------------------------------------------------------------
+*/
 
-// Route Terproteksi Sesi (Wajib Token Valid)
+// ─── Public routes (tidak butuh token) ───────────────────────────────────
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login',    [AuthController::class, 'login']);
+
+// ─── Protected routes (butuh Bearer token dari Sanctum) ──────────────────
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Ambil data user yang login
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
-
-    // Update profile user yang sedang login
+    // Auth
+    Route::post('/logout',  [AuthController::class, 'logout']);
+    Route::get('/me',       [AuthController::class, 'me']);
     Route::post('/profile', [AuthController::class, 'updateProfile']);
 
-    // Fitur Manajemen Laporan
-    Route::post('/reports', [ReportController::class, 'store']);
-    Route::get('/reports', [ReportController::class, 'index']);
-    Route::get('/my-reports', [ReportController::class, 'myReports']);
-    Route::put('/reports/{id}/status', [ReportController::class, 'updateStatus']);
+    // Laporan — semua user bisa baca dan buat
+    Route::get('/reports',            [ReportController::class, 'index']);
+    Route::post('/reports',           [ReportController::class, 'store']);
+    Route::get('/my-reports',         [ReportController::class, 'myReports']);
+    Route::delete('/reports/{id}',    [ReportController::class, 'destroy']);
 
-    // Logout
-    Route::post('/logout', [AuthController::class, 'logout']);
+    // Admin-only: update status & statistik
+    Route::put('/reports/{id}/status', [ReportController::class, 'updateStatus']);
+    Route::get('/admin/stats',         [ReportController::class, 'adminStats']);
 });
